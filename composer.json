@@ -1,23 +1,26 @@
 {
   "name": "stellarsecurity/support-client-laravel",
-  "description": "Laravel client for Stellar Support Ticket API",
+  "description": "Laravel HTTP client for Stellar Security Support Ticket API",
   "type": "library",
   "license": "MIT",
   "require": {
-    "php": "^8.2"
+    "php": "^8.2",
+    "illuminate/support": "^11.0|^12.0",
+    "illuminate/http": "^11.0|^12.0",
+    "guzzlehttp/guzzle": "^7.0"
   },
   "autoload": {
     "psr-4": {
-      "StellarSecurity\\\\SupportClient\\\\": "src/"
+      "StellarSecurity\\SupportClient\\": "src/"
     }
   },
   "extra": {
     "laravel": {
       "providers": [
-        "StellarSecurity\\\\SupportClient\\\\SupportClientServiceProvider"
+        "StellarSecurity\\SupportClient\\SupportClientServiceProvider"
       ],
       "aliases": {
-        "Support": "StellarSecurity\\\\SupportClient\\\\Facades\\\\Support"
+        "Support": "StellarSecurity\\SupportClient\\Facades\\Support"
       }
     }
   },

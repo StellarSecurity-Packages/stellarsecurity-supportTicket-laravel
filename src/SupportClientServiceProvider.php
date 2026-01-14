@@ -1,4 +1,5 @@
 <?php
+// English comments only.
 
 namespace StellarSecurity\SupportClient;
 
@@ -8,21 +9,17 @@ class SupportClientServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__ . '/../config/stellar-support.php', 'stellar-support');
+        $this->mergeConfigFrom(__DIR__ . '/Config/support-client.php', 'support-client');
 
         $this->app->singleton(SupportClient::class, function () {
-            return new SupportClient(config('stellar-support'));
-        });
-
-        $this->app->singleton(Support::class, function ($app) {
-            return new Support($app->make(SupportClient::class));
+            return new SupportClient(config('support-client'));
         });
     }
 
     public function boot(): void
     {
         $this->publishes([
-            __DIR__ . '/../config/stellar-support.php' => config_path('stellar-support.php'),
-        ], 'stellar-support-config');
+            __DIR__ . '/Config/support-client.php' => config_path('support-client.php'),
+        ], 'stellarsecurity-support-client-config');
     }
 }
