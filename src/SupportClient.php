@@ -1,5 +1,4 @@
 <?php
-// English comments only.
 
 namespace StellarSecurity\SupportClient;
 
@@ -7,6 +6,8 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Client\PendingRequest;
 use Illuminate\Http\Client\Response;
+use Illuminate\Http\UploadedFile;
+use RuntimeException;
 
 class SupportClient
 {
@@ -23,6 +24,10 @@ class SupportClient
         $this->basicUser = (string) Arr::get($config, 'basic_user', '');
         $this->basicPass = (string) Arr::get($config, 'basic_pass', '');
         $this->timeout = (int) Arr::get($config, 'timeout', 15);
+
+        if ($this->baseUrl === '') {
+            throw new RuntimeException('SupportClient: base_url is required');
+        }
     }
 
     private function client(): PendingRequest
@@ -43,9 +48,63 @@ class SupportClient
         return $this->baseUrl . $this->apiPrefix . '/' . ltrim($path, '/');
     }
 
+    /**
+     * Create ticket (JSON-only). Does NOT support file attachments.
+     */
     public function createTicket(array $data): array
     {
+        // If someone accidentally passes attachments here, they will not be sent.
+        unset($data['attachments']);
+
         $resp = $this->client()->post($this->url('support'), $data);
+        return $this->decode($resp);
+    }
+
+    /**
+     * Create ticket with file attachments via multipart/form-data.
+     *
+     * @param array<string,mixed> $data
+     * @param array<int,UploadedFile|string> $attachments  UploadedFile[] recommended. Strings = absolute file paths.
+     */
+    public function createTicketWithAttachments(array $data, array $attachments): array
+    {
+        $req = $this->client();
+
+        // Encode metadata array as JSON string for multipart
+        if (array_key_exists('metadata', $data) && is_array($data['metadata'])) {
+            $data['metadata'] = json_encode($data['metadata'], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+        }
+
+        // Attach files as attachments[]
+        foreach ($attachments as $file) {
+            if ($file instanceof UploadedFile) {
+                $path = $file->getRealPath();
+                if (!$path) {
+                    continue;
+                }
+
+                $req = $req->attach(
+                    'attachments[]',
+                    file_get_contents($path),
+                    $file->getClientOriginalName()
+                );
+
+                continue;
+            }
+
+            // Allow raw file paths too (absolute paths expected)
+            if (is_string($file) && $file !== '' && is_file($file)) {
+                $req = $req->attach(
+                    'attachments[]',
+                    file_get_contents($file),
+                    basename($file)
+                );
+            }
+        }
+
+        // Post as multipart: fields + attachments[]
+        $resp = $req->post($this->url('support'), $data);
+
         return $this->decode($resp);
     }
 
